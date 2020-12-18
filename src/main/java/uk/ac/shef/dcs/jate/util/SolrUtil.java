@@ -29,7 +29,7 @@ public class SolrUtil {
      */
     public static Terms getTermVector(String fieldname, SolrIndexSearcher solrIndexSearcher) throws JATEException {
         try {
-            Fields fields = MultiFields.getFields(solrIndexSearcher.getLeafReader());
+            Fields fields = MultiFields.getFields(solrIndexSearcher.getSlowAtomicReader());
 
             Terms vector = fields.terms(fieldname);
             if (vector == null)
@@ -50,7 +50,7 @@ public class SolrUtil {
                 doc.removeField(copyField.getDestination().getName());
 
                 IndexableField jateField = copyField.getDestination().
-                        createField(doc.get(copyField.getSource().getName()), boost);
+                        createField(doc.get(copyField.getSource().getName()));
                 doc.add(jateField);
             }
         }
@@ -79,7 +79,7 @@ public class SolrUtil {
 
     public static Terms getTermVector(int docId, String fieldname, SolrIndexSearcher solrIndexSearcher) throws JATEException {
         try {
-            Terms vector = solrIndexSearcher.getLeafReader().getTermVector(docId, fieldname);
+            Terms vector = solrIndexSearcher.getSlowAtomicReader().getTermVector(docId, fieldname);
 
             return vector;
         } catch (IOException ioe) {

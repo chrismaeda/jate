@@ -3,7 +3,7 @@ package uk.ac.shef.dcs.jate.app;
 import com.google.gson.Gson;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.SolrCore;
@@ -284,15 +284,13 @@ public abstract class App {
             throws IOException, JATEException {
         EmbeddedSolrServer solrServer = null;
         SolrCore core = null;
-        List<JATETerm> result = new ArrayList<JATETerm>();
+        List<JATETerm> result;
 
         try {
             solrServer = new EmbeddedSolrServer(Paths.get(solrHomePath), coreName);
             core = solrServer.getCoreContainer().getCore(coreName);
             result = extract(core, jatePropertyFile);
             
-//            core.close();
-//            solrServer.close();
             Iterator<JATETerm> it = result.iterator();
             while(it.hasNext()){
                 JATETerm jt = it.next();
@@ -301,19 +299,7 @@ public abstract class App {
             }
             return result;
         } finally {
-//            try {
                 if (solrServer != null) {
-
-//                    try {
-//						solrServer.commit();
-//					} catch (SolrServerException e) {
-//						log.error(e.toString());
-//					}
-
-                    if (core != null) {
-                        core.close();
-                    }
-
                     solrServer.close();
                     //workaround to avoid ERROR "CachingDirectoryFactory:150"
                     solrServer.getCoreContainer().getAllCoreNames().forEach(currentCoreName -> {
@@ -323,17 +309,7 @@ public abstract class App {
                         }
                     });
                 }
-//                if (solrServer != null) {
-//                    solrServer.commit(true, true);
-//                    Thread.sleep(5000);
-//
-//                    solrServer.getCoreContainer().shutdown();
-//                    solrServer.close();
-//                }
-//            } catch (Exception e) {
-//                log.error("Unable to close solr index, error cause:");
-//                log.error(ExceptionUtils.getFullStackTrace(e));
-//            }
+
         }        
     }
 
@@ -423,7 +399,7 @@ public abstract class App {
      * @param idFieldname        doc unique id field
      * @throws IOException
      */
-    public void collectTermOffsets(List<JATETerm> terms, LeafReader leafReader, String ngramInfoFieldname,
+    public void collectTermOffsets(List<JATETerm> terms, IndexReader leafReader, String ngramInfoFieldname,
                                    String idFieldname) throws IOException {
         TermInfoCollector infoCollector = new TermInfoCollector(leafReader, ngramInfoFieldname, idFieldname);
 
@@ -451,7 +427,7 @@ public abstract class App {
                                       String idField) throws JATEException {
         if (this.collectTermInfo) {
             try {
-                collectTermOffsets(terms, searcher.getLeafReader(), content2NgramField, idField);
+                collectTermOffsets(terms, searcher.getSlowAtomicReader(), content2NgramField, idField);
             } catch (IOException e) {
                 throw new JATEException("I/O exception when reading Solr index. " + e.toString());
             }
